@@ -11,6 +11,7 @@ body {
   align-items: center;
   min-height: 100vh;
 }
+
 .home-container {
   max-width: 1200px;
   margin: 40px auto;
@@ -18,6 +19,8 @@ body {
   padding: 32px 24px;
   border-radius: 12px;
   box-shadow: 0 4px 24px #eef2f7;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .filters-container {
@@ -32,13 +35,17 @@ body {
   border-radius: 5px;
   border: 1px solid #c2c2c2;
   font-size: 1em;
-  min-width: 240px;
+  min-width: 180px;
   margin-right: 1em;
+  width: 100%;
+  max-width: 320px;
+  box-sizing: border-box;
 }
 
 .filter-dropdown {
   display: flex;
   flex-direction: column;
+  min-width: 140px;
 }
 
 .filter-dropdown label {
@@ -51,7 +58,7 @@ body {
   border-radius: 4px;
   border: 1px solid #b6b6b6;
   font-size: 1em;
-  min-width: 150px;
+  min-width: 120px;
 }
 
 .tag-section {
@@ -92,12 +99,16 @@ body {
   margin-bottom: 24px;
   background: #fcfcfe;
   box-shadow: 0 1px 2px #eee;
+  font-size: 1em;
+  table-layout: auto;
+  overflow-x: auto;
 }
 
 .problems-table th, .problems-table td {
-  padding: 8px 14px;
+  padding: 8px 8px;
   text-align: left;
   border-bottom: 1px solid #ececec;
+  word-break: break-word;
 }
 
 .problems-table th {
@@ -127,4 +138,74 @@ body {
   display: inline-block;
   margin: 0 3px 3px 0;
   font-size: 0.97em;
+}
+
+
+/* ------------- RESPONSIVE STYLES ------------- */
+@media (max-width: 900px) {
+  .home-container {
+    padding: 18px 8px;
+    max-width: 98vw;
+  }
+  .filters-container {
+    gap: 1em;
+  }
+}
+
+@media (max-width: 600px) {
+  body {
+    align-items: flex-start;
+    min-height: 0;
+    height: 100%;
+  }
+  .home-container {
+    margin: 0;
+    padding: 10px 3vw;
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 100vh;
+  }
+  .filters-container {
+    flex-direction: column;
+    gap: 0.7em;
+    margin-bottom: 1em;
+  }
+  .search-input, .filter-dropdown select {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    margin-right: 0;
+  }
+  .collapsible-header {
+    font-size: 1em;
+    padding: 8px 10px;
+  }
+  .problems-table {
+    font-size: 0.93em;
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+  }
+  .problems-table thead, .problems-table tbody, .problems-table th, .problems-table td, .problems-table tr {
+    display: block;
+  }
+  .problems-table tr {
+    margin-bottom: 10px;
+    border-bottom: 2px solid #ececec;
+  }
+  .problems-table th, .problems-table td {
+    padding: 7px 5px;
+    border-bottom: none;
+  }
+}
+
+/* For very small devices (extra safety) */
+@media (max-width: 400px) {
+  .home-container {
+    padding: 4px 1vw;
+  }
+  .collapsible-header {
+    font-size: 0.96em;
+    padding: 7px 5px;
+  }
 }
