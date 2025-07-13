@@ -481,3 +481,18 @@ body {
   align-items: flex-start !important;
   min-height: 0 !important;
 }
+.problem-url {
+  margin-bottom: 16px;
+}
+.external-link {
+  color: #0077cc;
+  text-decoration: underline;
+  font-weight: 500;
+  font-size: 1rem;
+}
+.external-link:hover {
+  color: #005fa3;
+}
+.problem-iframe-container {
+  margin-bottom: 16px;
+}

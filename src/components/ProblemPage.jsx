@@ -22,6 +22,37 @@ export default function ProblemPage({ problems }) {
         #{problem.number} – {problem.title}
       </div>
 
+      {/* Problem External URL */}
+      {problem.url && (
+        <div className="problem-url">
+          <a
+            href={problem.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="external-link"
+          >
+            View Original Problem
+          </a>
+        </div>
+      )}
+
+      {/* Embed URL in iframe */}
+      {problem.url && (
+        <div className="problem-iframe-container">
+          <iframe
+            src={problem.url}
+            title="Problem Page"
+            width="100%"
+            height="600px"
+            frameBorder="0"
+            style={{ borderRadius: '8px', marginBottom: '24px', background: '#fff' }}
+          />
+          <p style={{ fontSize: '0.9em', color: '#999', marginTop: '8px' }}>
+            If the problem doesn’t load here, <a href={problem.url} target="_blank" rel="noopener noreferrer">open it in a new tab</a>.
+          </p>
+        </div>
+      )}
+
       {/* Approach Section */}
       {problem.approach && (
         <div className="problem-section">
