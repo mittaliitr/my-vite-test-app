@@ -18,53 +18,57 @@ export default function ProblemPage({ problems }) {
   return (
     <div className="problem-container">
       <Link to="/" className="back-link">← Back</Link>
-      <h2 className="problem-title">#{problem.number} – {problem.title}</h2>
+      <div className="problem-title">
+        #{problem.number} – {problem.title}
+      </div>
 
       {/* Approach Section */}
       {problem.approach && (
-        <>
+        <div className="problem-section">
           <h3>Approach</h3>
           <p>{problem.approach}</p>
-        </>
+        </div>
       )}
 
       {/* Main Data Structures Section */}
       {problem.mainDataStructures && problem.mainDataStructures.length > 0 && (
-        <>
+        <div className="problem-section">
           <h3>Main Data Structures</h3>
           <ul>
             {problem.mainDataStructures.map((ds, index) => (
               <li key={index}>{ds}</li>
             ))}
           </ul>
-        </>
+        </div>
       )}
 
       {/* High-Level Pseudocode Section */}
       {problem.highLevelPseudocode && (
-        <>
+        <div className="problem-section">
           <h3>High-Level Pseudocode</h3>
-          <SyntaxHighlighter language="text" showLineNumbers>
+          <SyntaxHighlighter language="text">
             {Array.isArray(problem.highLevelPseudocode)
               ? problem.highLevelPseudocode.join('\n')
               : problem.highLevelPseudocode}
           </SyntaxHighlighter>
-        </>
+        </div>
       )}
 
       {/* Java Solution Section */}
-      <h3>Java Solution</h3>
-      <button
-        className="toggle-button"
-        onClick={() => setJavaSolutionVisible(!isJavaSolutionVisible)}
-      >
-        {isJavaSolutionVisible ? 'Hide Java Solution' : 'Show Java Solution'}
-      </button>
-      {isJavaSolutionVisible && (
-        <SyntaxHighlighter language="java" showLineNumbers>
-          {problem.code}
-        </SyntaxHighlighter>
-      )}
+      <div className="problem-section">
+        <h3>Java Solution</h3>
+        <button
+          className="toggle-button"
+          onClick={() => setJavaSolutionVisible(!isJavaSolutionVisible)}
+        >
+          {isJavaSolutionVisible ? 'Hide Java Solution' : 'Show Java Solution'}
+        </button>
+        {isJavaSolutionVisible && (
+          <SyntaxHighlighter language="java" showLineNumbers>
+            {problem.code}
+          </SyntaxHighlighter>
+        )}
+      </div>
     </div>
   )
 }

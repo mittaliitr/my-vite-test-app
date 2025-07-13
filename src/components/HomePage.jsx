@@ -105,12 +105,12 @@ export default function HomePage({ problems }) {
 
   return (
     <div className="home-container">
-<div style={{ display: 'flex', alignItems: 'center', gap: '1.2em', marginBottom: 8 }}>
-  <Logo style={{ maxWidth: 220, height: 56 }} />
-</div>
-<p style={{ marginTop: 0, color: '#64748b', fontSize: '1.18em' }}>
-  Explore problems, learn solutions, and enhance your skills.
-</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.2em', marginBottom: 8 }}>
+        <Logo style={{ maxWidth: 220, height: 56 }} />
+      </div>
+      <p style={{ marginTop: 0, color: '#64748b', fontSize: '1.18em' }}>
+        Explore problems, learn solutions, and enhance your skills.
+      </p>
 
       <div className="filters-container">
         <input
@@ -153,6 +153,12 @@ export default function HomePage({ problems }) {
           </div>
         ))}
       </div>
+
+      {/* ====== PROBLEM COUNT ADDED HERE ====== */}
+      <div style={{ margin: "16px 0", fontWeight: 500 }}>
+        Showing <span style={{ color: "#2563eb" }}>{searchResults.length}</span> problem{searchResults.length !== 1 ? "s" : ""}.
+      </div>
+      {/* ====================================== */}
 
       {/* --------- GROUPED DISPLAY ----------- */}
       {Object.keys(groupedProblems)
