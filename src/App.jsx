@@ -7,7 +7,7 @@ export default function App() {
   const [problems, setProblems] = useState([])
 
   useEffect(() => {
-fetch('/problems.json') // Adjust the path as needed
+fetch('/my-vite-test-app/problems.json') // Adjust the path as needed
       .then(r => r.json())
   .then(data => {
         console.log("Fetched problems:", data); // <---- Add this line
