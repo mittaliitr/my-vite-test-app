@@ -64,7 +64,7 @@ export default function ProblemPage({ problems }) {
           {isJavaSolutionVisible ? 'Hide Java Solution' : 'Show Java Solution'}
         </button>
         {isJavaSolutionVisible && (
-          <SyntaxHighlighter language="java" showLineNumbers>
+          <SyntaxHighlighter language="java">
             {problem.code}
           </SyntaxHighlighter>
         )}
