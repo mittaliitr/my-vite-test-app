@@ -11,120 +11,120 @@ body {
   align-items: center;
   min-height: 100vh;
 }
+.home-container {
+  max-width: 1200px;
+  margin: 40px auto;
+  background: #fff;
+  padding: 32px 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px #eef2f7;
+}
 
-.problem-container {
-  max-width: 800px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #ffffff;
+.filters-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5em;
+  margin-bottom: 2em;
+}
+
+.search-input {
+  padding: 0.4em 1em;
+  border-radius: 5px;
+  border: 1px solid #c2c2c2;
+  font-size: 1em;
+  min-width: 240px;
+  margin-right: 1em;
+}
+
+.filter-dropdown {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-dropdown label {
+  font-size: 0.9em;
+  margin-bottom: 0.2em;
+}
+
+.filter-dropdown select {
+  padding: 0.3em 0.6em;
+  border-radius: 4px;
+  border: 1px solid #b6b6b6;
+  font-size: 1em;
+  min-width: 150px;
+}
+
+.tag-section {
+  margin-bottom: 1.8em;
+}
+
+.collapsible-header {
+  background: #f6f7fa;
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #dcdcdc;
+  padding: 10px 15px;
+  font-weight: 600;
+  font-size: 1.2em;
+  margin: 1em 0 .5em;
+  box-shadow: 0 1px 4px #ddd;
+  display: flex;
+  align-items: center;
+  user-select: none;
 }
 
-h2, h3 {
-  font-family: 'Merriweather', serif;
-  color: #900C3F;
-  margin-bottom: 10px;
+.difficulty-collapsible {
+  background: #e7eaf3;
+  border-radius: 6px;
+  padding: 6px 16px;
+  margin: 8px 0;
+  font-weight: 500;
+  font-size: 1.07em;
 }
 
-h2.problem-title {
-  font-size: 1.8rem;
-  text-align: center;
-  color: #900C3F;
-  border-bottom: 2px solid #900C3F;
-  padding-bottom: 10px;
-}
-
-h3 {
-  font-size: 1.4rem;
-  margin-top: 20px;
-  color: #333333;
-}
-
-p, ul, li {
-  font-size: 1rem;
-  margin: 10px 0;
-}
-
-ul {
-  padding-left: 20px;
-}
-
-li {
-  margin-bottom: 5px;
-}
-
-/* Back Link */
-.back-link {
+.chevron {
   display: inline-block;
-  margin-bottom: 20px;
-  color: #900C3F;
-  text-decoration: none;
-  font-weight: bold;
+  font-size: 1.2em;
+  transition: transform 0.2s;
 }
 
-.back-link:hover {
+.problems-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+  background: #fcfcfe;
+  box-shadow: 0 1px 2px #eee;
+}
+
+.problems-table th, .problems-table td {
+  padding: 8px 14px;
+  text-align: left;
+  border-bottom: 1px solid #ececec;
+}
+
+.problems-table th {
+  background: #f2f6fb;
+  font-weight: 700;
+}
+
+.problems-table tr:last-child td {
+  border-bottom: none;
+}
+
+.problem-link {
+  color: #2452a8;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.leetcode-link {
+  color: #1da185;
   text-decoration: underline;
 }
 
-/* Toggle Button */
-.toggle-button {
-  margin: 10px 0;
-  padding: 8px 15px;
-  background-color: #6C757D;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: bold;
-}
-
-.toggle-button:hover {
-  background-color: #5A6268;
-}
-
-/* Syntax Highlighter */
-pre {
-  background-color: #f8f9fa;
-  padding: 15px;
-  border-radius: 5px;
-  overflow-x: auto;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  border: 1px solid #dcdcdc;
-}
-
-.problem-container pre {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-/* Motivational Hindi Touch */
-.motivational-text {
-  font-family: 'Noto Sans Devanagari', sans-serif;
-  font-size: 1.2rem;
-  color: #900C3F;
-  text-align: center;
-  margin-top: 20px;
-  font-style: italic;
-}
-
-/* Footer */
-.footer {
-  text-align: center;
-  margin-top: 30px;
-  font-size: 0.9rem;
-  color: #6C757D;
-}
-
-.footer a {
-  color: #900C3F;
-  text-decoration: none;
-}
-
-.footer a:hover {
-  text-decoration: underline;
+.company-name {
+  background: #e1f7f0;
+  border-radius: 4px;
+  padding: 2px 7px;
+  display: inline-block;
+  margin: 0 3px 3px 0;
+  font-size: 0.97em;
 }

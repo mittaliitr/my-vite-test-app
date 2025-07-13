@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Fuse from 'fuse.js'
 import './HomePage.css'
+import Logo from './Logo'
 
 export default function HomePage({ problems }) {
   const [filters, setFilters] = useState({
@@ -13,6 +14,8 @@ export default function HomePage({ problems }) {
     difficulty: '',
   })
   const [search, setSearch] = useState('')
+  const [openTags, setOpenTags] = useState({})
+  const [openDifficulties, setOpenDifficulties] = useState({})
 
   // Fuzzy search setup
   const fuse = new Fuse(problems, {
@@ -44,8 +47,8 @@ export default function HomePage({ problems }) {
         )
       }
       return problem[key]
-        .toLowerCase()
-        .includes(filters[key].toLowerCase())
+        ? problem[key].toLowerCase().includes(filters[key].toLowerCase())
+        : true
     })
   })
 
@@ -53,14 +56,62 @@ export default function HomePage({ problems }) {
     ? fuse.search(search).map((result) => result.item)
     : filteredProblems
 
-  const handleFilterChange = (field, value) => {
+  // -------- GROUPING LOGIC ----------
+  const groupedProblems = {}
+
+  searchResults.forEach((problem) => {
+    const tag = problem.tag || 'Other'
+    // Default missing difficulty to "Medium"
+    const difficulty = problem.difficulty || 'Medium'
+    if (!groupedProblems[tag]) groupedProblems[tag] = {}
+    if (!groupedProblems[tag][difficulty]) groupedProblems[tag][difficulty] = []
+    groupedProblems[tag][difficulty].push(problem)
+  })
+
+  // Frequency order for sorting
+  const freqOrder = {
+    'Very High': 1,
+    'High': 2,
+    'Medium': 3,
+    'Low': 4,
+    'Other': 5,
+  }
+
+  Object.keys(groupedProblems).forEach((tag) => {
+    Object.keys(groupedProblems[tag]).forEach((difficulty) => {
+      groupedProblems[tag][difficulty].sort((a, b) => {
+        const fa = freqOrder[a.frequency] || 99
+        const fb = freqOrder[b.frequency] || 99
+        if (fa !== fb) return fa - fb
+        return (a.title || '').localeCompare(b.title || '')
+      })
+    })
+  })
+
+  // Collapsible handlers
+  const toggleTag = (tag) => {
+    setOpenTags((prev) => ({ ...prev, [tag]: !prev[tag] }))
+  }
+  const toggleDifficulty = (tag, difficulty) => {
+    setOpenDifficulties((prev) => ({
+      ...prev,
+      [tag + '-' + difficulty]: !prev[tag + '-' + difficulty],
+    }))
+  }
+
+  function handleFilterChange(field, value) {
     setFilters((prev) => ({ ...prev, [field]: value }))
   }
 
   return (
     <div className="home-container">
-      <h1>Welcome to the Problem Solver</h1>
-      <p>Explore problems, learn solutions, and enhance your skills.</p>
+<div style={{ display: 'flex', alignItems: 'center', gap: '1.2em', marginBottom: 8 }}>
+  <Logo style={{ maxWidth: 220, height: 56 }} />
+</div>
+<p style={{ marginTop: 0, color: '#64748b', fontSize: '1.18em' }}>
+  Explore problems, learn solutions, and enhance your skills.
+</p>
+
       <div className="filters-container">
         <input
           type="text"
@@ -102,48 +153,119 @@ export default function HomePage({ problems }) {
           </div>
         ))}
       </div>
-      <table className="problems-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Title</th>
-            <th>Companies</th>
-            <th>Solution Summary</th>
-            <th>Frequency</th>
-            <th>URL</th>
-          </tr>
-        </thead>
-        <tbody>
-          {searchResults.map((problem) => (
-            <tr key={problem.number}>
-              <td>{problem.number}</td>
-              <td>
-                <Link to={`/problems/${problem.number}`} className="problem-link">
-                  {problem.title}
-                </Link>
-              </td>
-              <td>
-                {problem.companies ? (
-                  problem.companies.map((company, index) => (
-                    <div key={index} className="company-name">
-                      {company}
-                    </div>
-                  ))
-                ) : (
-                  'N/A'
-                )}
-              </td>
-              <td className="solution-summary">{problem.solution_summary || 'N/A'}</td>
-              <td>{problem.frequency}</td>
-              <td>
-                <a href={problem.url} target="_blank" rel="noopener noreferrer" className="leetcode-link">
-                  LeetCode
-                </a>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+
+      {/* --------- GROUPED DISPLAY ----------- */}
+      {Object.keys(groupedProblems)
+        .filter((tag) => tag !== 'Other')
+        .sort()
+        .map((tag) => (
+          <div key={tag} className="tag-section">
+            <div
+              className="collapsible-header tag-collapsible"
+              onClick={() => toggleTag(tag)}
+              style={{ cursor: 'pointer' }}
+            >
+              <span
+                className="chevron"
+                style={{
+                  marginRight: 8,
+                  transform: openTags[tag] ? 'rotate(90deg)' : '',
+                }}
+              >
+                ▶
+              </span>
+              {tag}
+            </div>
+            {openTags[tag] && (
+              <div style={{ marginLeft: '1.2em' }}>
+                {Object.keys(groupedProblems[tag])
+                  .filter((difficulty) => difficulty !== 'Other')
+                  .sort()
+                  .map((difficulty) => {
+                    const problemsInSection = groupedProblems[tag][difficulty]
+                    const isCollapsible = problemsInSection.length > 3
+                    const isOpen = openDifficulties[tag + '-' + difficulty]
+                    return (
+                      <div key={difficulty} className="difficulty-section">
+                        <div
+                          className="collapsible-header difficulty-collapsible"
+                          style={{
+                            cursor: isCollapsible ? 'pointer' : 'default',
+                          }}
+                          onClick={() => {
+                            if (isCollapsible) toggleDifficulty(tag, difficulty)
+                          }}
+                        >
+                          {isCollapsible && (
+                            <span
+                              className="chevron"
+                              style={{
+                                marginRight: 8,
+                                transform: isOpen ? 'rotate(90deg)' : '',
+                              }}
+                            >
+                              ▶
+                            </span>
+                          )}
+                          {difficulty}
+                        </div>
+                        {(isCollapsible ? isOpen : true) && (
+                          <table className="problems-table">
+                            <thead>
+                              <tr>
+                                <th>Title</th>
+                                <th>Companies</th>
+                                <th>Solution Summary</th>
+                                <th>Frequency</th>
+                                <th>URL</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {problemsInSection.map((problem) => (
+                                <tr key={problem.number || problem.title}>
+                                  <td>
+                                    <Link
+                                      to={`/problems/${problem.number || problem.title}`}
+                                      className="problem-link"
+                                    >
+                                      {problem.title}
+                                    </Link>
+                                  </td>
+                                  <td>
+                                    {problem.companies && problem.companies.length > 0
+                                      ? problem.companies.map((company, idx) => (
+                                          <div key={idx} className="company-name">
+                                            {company}
+                                          </div>
+                                        ))
+                                      : 'N/A'}
+                                  </td>
+                                  <td className="solution-summary">
+                                    {problem.solution_summary || 'N/A'}
+                                  </td>
+                                  <td>{problem.frequency}</td>
+                                  <td>
+                                    <a
+                                      href={problem.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="leetcode-link"
+                                    >
+                                      LeetCode
+                                    </a>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    )
+                  })}
+              </div>
+            )}
+          </div>
+        ))}
     </div>
   )
 }
