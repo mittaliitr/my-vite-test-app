@@ -1,10 +1,35 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Fuse from 'fuse.js'
 import './HomePage.css'
 import Logo from './Logo'
 
+const SOLVED_STORAGE_KEY = "leetcode_solved_problems"
+
 export default function HomePage({ problems }) {
+  // Solved state per problem
+  const [solved, setSolved] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(SOLVED_STORAGE_KEY)) || {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Save solved state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(SOLVED_STORAGE_KEY, JSON.stringify(solved))
+  }, [solved])
+
+  // Helper to toggle solved status
+  const toggleSolved = (number) => {
+    setSolved(prev => ({
+      ...prev,
+      [number]: !prev[number]
+    }))
+  }
+
+  // Filters and fuzzy search logic (same as before)
   const [filters, setFilters] = useState({
     number: '',
     title: '',
@@ -17,7 +42,6 @@ export default function HomePage({ problems }) {
   const [openTags, setOpenTags] = useState({})
   const [openDifficulties, setOpenDifficulties] = useState({})
 
-  // Fuzzy search setup
   const fuse = new Fuse(problems, {
     keys: [
       'number',
@@ -30,7 +54,6 @@ export default function HomePage({ problems }) {
     threshold: 0.3,
   })
 
-  // Get unique company names for the dropdown
   const uniqueCompanies = [
     ...new Set(problems.flatMap((problem) => problem.companies || [])),
   ]
@@ -58,17 +81,14 @@ export default function HomePage({ problems }) {
 
   // -------- GROUPING LOGIC ----------
   const groupedProblems = {}
-
   searchResults.forEach((problem) => {
     const tag = problem.tag || 'Other'
-    // Default missing difficulty to "Medium"
     const difficulty = problem.difficulty || 'Medium'
     if (!groupedProblems[tag]) groupedProblems[tag] = {}
     if (!groupedProblems[tag][difficulty]) groupedProblems[tag][difficulty] = []
     groupedProblems[tag][difficulty].push(problem)
   })
 
-  // Frequency order for sorting
   const freqOrder = {
     'Very High': 1,
     'High': 2,
@@ -76,7 +96,6 @@ export default function HomePage({ problems }) {
     'Low': 4,
     'Other': 5,
   }
-
   Object.keys(groupedProblems).forEach((tag) => {
     Object.keys(groupedProblems[tag]).forEach((difficulty) => {
       groupedProblems[tag][difficulty].sort((a, b) => {
@@ -88,7 +107,6 @@ export default function HomePage({ problems }) {
     })
   })
 
-  // Collapsible handlers
   const toggleTag = (tag) => {
     setOpenTags((prev) => ({ ...prev, [tag]: !prev[tag] }))
   }
@@ -102,6 +120,10 @@ export default function HomePage({ problems }) {
   function handleFilterChange(field, value) {
     setFilters((prev) => ({ ...prev, [field]: value }))
   }
+
+  // ========== SOLVED COUNT ==========
+  const totalSolved = Object.values(solved).filter(Boolean).length
+  // ==========
 
   return (
     <div className="home-container">
@@ -154,9 +176,12 @@ export default function HomePage({ problems }) {
         ))}
       </div>
 
-      {/* ====== PROBLEM COUNT ADDED HERE ====== */}
+      {/* ====== PROBLEM & SOLVED COUNT ====== */}
       <div style={{ margin: "16px 0", fontWeight: 500 }}>
-        Showing <span style={{ color: "#2563eb" }}>{searchResults.length}</span> problem{searchResults.length !== 1 ? "s" : ""}.
+        Showing <span style={{ color: "#2563eb" }}>{searchResults.length}</span> problem{searchResults.length !== 1 ? "s" : ""}.{' '}
+        <span style={{ marginLeft: 16, color: "#16a34a" }}>
+          <b>Solved:</b> {totalSolved}
+        </span>
       </div>
       {/* ====================================== */}
 
@@ -224,6 +249,7 @@ export default function HomePage({ problems }) {
                                 <th>Solution Summary</th>
                                 <th>Frequency</th>
                                 <th>URL</th>
+                                <th>Solved</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -259,6 +285,15 @@ export default function HomePage({ problems }) {
                                     >
                                       LeetCode
                                     </a>
+                                  </td>
+                                  {/* ==== Solved Checkbox ==== */}
+                                  <td>
+                                    <input
+                                      type="checkbox"
+                                      checked={!!solved[problem.number]}
+                                      onChange={() => toggleSolved(problem.number)}
+                                      title="Mark as solved"
+                                    />
                                   </td>
                                 </tr>
                               ))}
