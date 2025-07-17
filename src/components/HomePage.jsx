@@ -1,10 +1,36 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import Fuse from 'fuse.js'
 import './HomePage.css'
 import Logo from './Logo'
 
 const SOLVED_STORAGE_KEY = "leetcode_solved_problems"
+
+// Fancy chevron, as before
+function FancyChevron({ open, style = {}, size = 18 }) {
+  return (
+    <svg
+      style={{
+        transition: 'transform 0.2s',
+        transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
+        verticalAlign: 'middle',
+        ...style,
+      }}
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+    >
+      <polyline
+        points="6 8 10 12 14 8"
+        stroke="#6366f1"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
 
 export default function HomePage({ problems }) {
   // Solved state per problem
@@ -16,12 +42,10 @@ export default function HomePage({ problems }) {
     }
   });
 
-  // Save solved state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem(SOLVED_STORAGE_KEY, JSON.stringify(solved))
   }, [solved])
 
-  // Helper to toggle solved status
   const toggleSolved = (number) => {
     setSolved(prev => ({
       ...prev,
@@ -29,7 +53,6 @@ export default function HomePage({ problems }) {
     }))
   }
 
-  // Filters and fuzzy search logic (same as before)
   const [filters, setFilters] = useState({
     number: '',
     title: '',
@@ -39,8 +62,14 @@ export default function HomePage({ problems }) {
     difficulty: '',
   })
   const [search, setSearch] = useState('')
+
+  // Expand states for each level
   const [openTags, setOpenTags] = useState({})
+  const [openSubTags, setOpenSubTags] = useState({})
   const [openDifficulties, setOpenDifficulties] = useState({})
+
+  // Ensure default open is only set once after first grouping
+  const initialized = useRef(false);
 
   const fuse = new Fuse(problems, {
     keys: [
@@ -79,15 +108,24 @@ export default function HomePage({ problems }) {
     ? fuse.search(search).map((result) => result.item)
     : filteredProblems
 
-  // -------- GROUPING LOGIC ----------
-  const groupedProblems = {}
+  // -------- NESTED GROUPING LOGIC --------
+  // groupedProblems[rootTag][subTag][difficulty] = [problems...]
+  const groupedProblems = {};
+
   searchResults.forEach((problem) => {
-    const tag = problem.tag || 'Other'
-    const difficulty = problem.difficulty || 'Medium'
-    if (!groupedProblems[tag]) groupedProblems[tag] = {}
-    if (!groupedProblems[tag][difficulty]) groupedProblems[tag][difficulty] = []
-    groupedProblems[tag][difficulty].push(problem)
-  })
+    let rootTag = 'Other', subTag = 'General';
+    if (problem.tag) {
+      const [root, ...rest] = problem.tag.split('/');
+      rootTag = root.trim();
+      subTag = rest.length > 0 ? rest.join('/').trim() : 'General';
+    }
+    const difficulty = problem.difficulty || 'Medium';
+
+    if (!groupedProblems[rootTag]) groupedProblems[rootTag] = {};
+    if (!groupedProblems[rootTag][subTag]) groupedProblems[rootTag][subTag] = {};
+    if (!groupedProblems[rootTag][subTag][difficulty]) groupedProblems[rootTag][subTag][difficulty] = [];
+    groupedProblems[rootTag][subTag][difficulty].push(problem);
+  });
 
   const freqOrder = {
     'Very High': 1,
@@ -95,35 +133,63 @@ export default function HomePage({ problems }) {
     'Medium': 3,
     'Low': 4,
     'Other': 5,
-  }
-  Object.keys(groupedProblems).forEach((tag) => {
-    Object.keys(groupedProblems[tag]).forEach((difficulty) => {
-      groupedProblems[tag][difficulty].sort((a, b) => {
-        const fa = freqOrder[a.frequency] || 99
-        const fb = freqOrder[b.frequency] || 99
-        if (fa !== fb) return fa - fb
-        return (a.title || '').localeCompare(b.title || '')
-      })
-    })
-  })
+  };
 
-  const toggleTag = (tag) => {
-    setOpenTags((prev) => ({ ...prev, [tag]: !prev[tag] }))
+  Object.keys(groupedProblems).forEach((rootTag) => {
+    Object.keys(groupedProblems[rootTag]).forEach((subTag) => {
+      Object.keys(groupedProblems[rootTag][subTag]).forEach((difficulty) => {
+        groupedProblems[rootTag][subTag][difficulty].sort((a, b) => {
+          const fa = freqOrder[a.frequency] || 99
+          const fb = freqOrder[b.frequency] || 99
+          if (fa !== fb) return fa - fb
+          return (a.title || '').localeCompare(b.title || '')
+        });
+      });
+    });
+  });
+
+  // Expand/collapse toggles for all three levels
+  const toggleTag = (rootTag) => setOpenTags((prev) => ({ ...prev, [rootTag]: !prev[rootTag] }))
+  const toggleSubTag = (rootTag, subTag) => {
+    const key = `${rootTag}//${subTag}`;
+    setOpenSubTags((prev) => ({ ...prev, [key]: !prev[key] }));
   }
-  const toggleDifficulty = (tag, difficulty) => {
-    setOpenDifficulties((prev) => ({
-      ...prev,
-      [tag + '-' + difficulty]: !prev[tag + '-' + difficulty],
-    }))
+  const toggleDifficulty = (rootTag, subTag, difficulty) => {
+    const key = `${rootTag}//${subTag}//${difficulty}`;
+    setOpenDifficulties((prev) => ({ ...prev, [key]: !prev[key] }));
   }
+
+  // --- Expand all on first render after grouping
+  useEffect(() => {
+    if (initialized.current) return;
+
+    // Only set on first render after grouping is ready
+    const _openTags = {};
+    const _openSubTags = {};
+    const _openDifficulties = {};
+    Object.keys(groupedProblems).forEach((rootTag) => {
+      _openTags[rootTag] = true;
+      Object.keys(groupedProblems[rootTag]).forEach((subTag) => {
+        const subKey = `${rootTag}//${subTag}`;
+        _openSubTags[subKey] = true;
+        Object.keys(groupedProblems[rootTag][subTag]).forEach((difficulty) => {
+          const difficultyKey = `${rootTag}//${subTag}//${difficulty}`;
+          _openDifficulties[difficultyKey] = true;
+        });
+      });
+    });
+    setOpenTags(_openTags);
+    setOpenSubTags(_openSubTags);
+    setOpenDifficulties(_openDifficulties);
+    initialized.current = true;
+    // eslint-disable-next-line
+  }, [searchResults.length, problems.length]);
 
   function handleFilterChange(field, value) {
     setFilters((prev) => ({ ...prev, [field]: value }))
   }
 
-  // ========== SOLVED COUNT ==========
   const totalSolved = Object.values(solved).filter(Boolean).length
-  // ==========
 
   return (
     <div className="home-container">
@@ -185,123 +251,143 @@ export default function HomePage({ problems }) {
       </div>
       {/* ====================================== */}
 
-      {/* --------- GROUPED DISPLAY ----------- */}
+      {/* --------- NESTED GROUPED DISPLAY ----------- */}
       {Object.keys(groupedProblems)
-        .filter((tag) => tag !== 'Other')
         .sort()
-        .map((tag) => (
-          <div key={tag} className="tag-section">
+        .map((rootTag) => (
+          <div key={rootTag} className="root-tag-section">
             <div
-              className="collapsible-header tag-collapsible"
-              onClick={() => toggleTag(tag)}
-              style={{ cursor: 'pointer' }}
+              className="collapsible-header root-tag-collapsible"
+              onClick={() => toggleTag(rootTag)}
+              style={{
+                cursor: 'pointer',
+                fontSize: '1.22em',
+                fontWeight: 600,
+                marginTop: 18,
+                marginBottom: 4,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5
+              }}
             >
-              <span
-                className="chevron"
-                style={{
-                  marginRight: 8,
-                  transform: openTags[tag] ? 'rotate(90deg)' : '',
-                }}
-              >
-                ▶
-              </span>
-              {tag}
+              <FancyChevron open={!!openTags[rootTag]} />
+              {rootTag}
             </div>
-            {openTags[tag] && (
+            {openTags[rootTag] && (
               <div style={{ marginLeft: '1.2em' }}>
-                {Object.keys(groupedProblems[tag])
-                  .filter((difficulty) => difficulty !== 'Other')
+                {Object.keys(groupedProblems[rootTag])
                   .sort()
-                  .map((difficulty) => {
-                    const problemsInSection = groupedProblems[tag][difficulty]
-                    const isCollapsible = problemsInSection.length > 3
-                    const isOpen = openDifficulties[tag + '-' + difficulty]
+                  .map((subTag) => {
+                    const subKey = `${rootTag}//${subTag}`;
                     return (
-                      <div key={difficulty} className="difficulty-section">
+                      <div key={subTag} className="subtag-section">
                         <div
-                          className="collapsible-header difficulty-collapsible"
+                          className="collapsible-header subtag-collapsible"
+                          onClick={() => toggleSubTag(rootTag, subTag)}
                           style={{
-                            cursor: isCollapsible ? 'pointer' : 'default',
-                          }}
-                          onClick={() => {
-                            if (isCollapsible) toggleDifficulty(tag, difficulty)
+                            cursor: 'pointer',
+                            fontWeight: 500,
+                            marginTop: 8,
+                            marginBottom: 3,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5
                           }}
                         >
-                          {isCollapsible && (
-                            <span
-                              className="chevron"
-                              style={{
-                                marginRight: 8,
-                                transform: isOpen ? 'rotate(90deg)' : '',
-                              }}
-                            >
-                              ▶
-                            </span>
-                          )}
-                          {difficulty}
+                          <FancyChevron open={!!openSubTags[subKey]} size={15} />
+                          {subTag}
                         </div>
-                        {(isCollapsible ? isOpen : true) && (
-                          <table className="problems-table">
-                            <thead>
-                              <tr>
-                                <th>Title</th>
-                                <th>Companies</th>
-                                <th>Solution Summary</th>
-                                <th>Frequency</th>
-                                <th>URL</th>
-                                <th>Solved</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {problemsInSection.map((problem) => (
-                                <tr key={problem.number || problem.title}>
-                                  <td>
-                                    <Link
-                                      to={`/problems/${problem.number || problem.title}`}
-                                      className="problem-link"
+                        {openSubTags[subKey] && (
+                          <div style={{ marginLeft: '1.2em' }}>
+                            {Object.keys(groupedProblems[rootTag][subTag])
+                              .sort()
+                              .map((difficulty) => {
+                                const difficultyKey = `${rootTag}//${subTag}//${difficulty}`;
+                                const problemsInSection = groupedProblems[rootTag][subTag][difficulty];
+                                return (
+                                  <div key={difficulty} className="difficulty-section">
+                                    <div
+                                      className="collapsible-header difficulty-collapsible"
+                                      onClick={() => toggleDifficulty(rootTag, subTag, difficulty)}
+                                      style={{
+                                        fontWeight: 400,
+                                        margin: '10px 0 3px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 5
+                                      }}
                                     >
-                                      {problem.title}
-                                    </Link>
-                                  </td>
-                                  <td>
-                                    {problem.companies && problem.companies.length > 0
-                                      ? problem.companies.map((company, idx) => (
-                                          <div key={idx} className="company-name">
-                                            {company}
-                                          </div>
-                                        ))
-                                      : 'N/A'}
-                                  </td>
-                                  <td className="solution-summary">
-                                    {problem.solution_summary || 'N/A'}
-                                  </td>
-                                  <td>{problem.frequency}</td>
-                                  <td>
-                                    <a
-                                      href={problem.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="leetcode-link"
-                                    >
-                                      LeetCode
-                                    </a>
-                                  </td>
-                                  {/* ==== Solved Checkbox ==== */}
-                                  <td>
-                                    <input
-                                      type="checkbox"
-                                      checked={!!solved[problem.number]}
-                                      onChange={() => toggleSolved(problem.number)}
-                                      title="Mark as solved"
-                                    />
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                                      <FancyChevron open={!!openDifficulties[difficultyKey]} size={13} />
+                                      {difficulty}
+                                    </div>
+                                    {openDifficulties[difficultyKey] && (
+                                      <table className="problems-table">
+                                        <thead>
+                                          <tr>
+                                            <th>Title</th>
+                                            <th>Companies</th>
+                                            <th>Solution Summary</th>
+                                            <th>Frequency</th>
+                                            <th>URL</th>
+                                            <th>Solved</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {problemsInSection.map((problem) => (
+                                            <tr key={problem.number || problem.title}>
+                                              <td>
+                                                <Link
+                                                  to={`/problems/${problem.number || problem.title}`}
+                                                  className="problem-link"
+                                                >
+                                                  {problem.title}
+                                                </Link>
+                                              </td>
+                                              <td>
+                                                {problem.companies && problem.companies.length > 0
+                                                  ? problem.companies.map((company, idx) => (
+                                                    <div key={idx} className="company-name">
+                                                      {company}
+                                                    </div>
+                                                  ))
+                                                  : 'N/A'}
+                                              </td>
+                                              <td className="solution-summary">
+                                                {problem.solution_summary || 'N/A'}
+                                              </td>
+                                              <td>{problem.frequency}</td>
+                                              <td>
+                                                <a
+                                                  href={problem.url}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="leetcode-link"
+                                                >
+                                                  LeetCode
+                                                </a>
+                                              </td>
+                                              {/* ==== Solved Checkbox ==== */}
+                                              <td>
+                                                <input
+                                                  type="checkbox"
+                                                  checked={!!solved[problem.number]}
+                                                  onChange={() => toggleSolved(problem.number)}
+                                                  title="Mark as solved"
+                                                />
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                          </div>
                         )}
                       </div>
-                    )
+                    );
                   })}
               </div>
             )}
