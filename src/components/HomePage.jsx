@@ -1,90 +1,29 @@
-import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import Fuse from 'fuse.js'
-import './HomePage.css'
-import Logo from './Logo'
+import React, { useState, useEffect } from 'react';
+import Logo from './Logo';
 
-const SOLVED_STORAGE_KEY = "leetcode_solved_problems"
+import Sidebar from './Sidebar';
+import PremiumFeature from './PremiumFeature';
+import ProgressBar from './ProgressBar';
+import FiltersBar from './FiltersBar';
+import ProblemsGroup from './ProblemsGroup';
 
-// Premium wrapper component
-function PremiumFeature({ isPremiumUser, children }) {
-  if (isPremiumUser) return children;
-  return (
-    <div className="upgrade-banner">
-      <span role="img" aria-label="lock">🔒</span>
-      This feature is for premium users only.
-      <button
-        style={{ marginLeft: 16 }}
-        onClick={() => alert("Trigger your upgrade logic here!")}
-      >
-        Upgrade to Premium
-      </button>
-    </div>
-  );
-}
+import {
+  groupProblems,
+  sortGroupedProblems,
+  getTopics,
+  getUniqueCompanies,
+  searchAndFilterProblems
+} from '../utils/problemUtils';
 
-// Sidebar component
-function Sidebar({ topics, selected, onSelect }) {
-  return (
-    <div className="sidebar">
-      <div className="sidebar-title">Topics</div>
-      {topics.map(topic => (
-        <div
-          key={topic}
-          className={`sidebar-topic${selected === topic ? " active" : ""}`}
-          onClick={() => onSelect(topic)}
-        >
-          {topic}
-        </div>
-      ))}
-    </div>
-  );
-}
+import './HomePage.css';
 
-// Progress bar component
-function ProgressBar({ solvedCount, totalCount }) {
-  const pct = totalCount === 0 ? 0 : Math.round((solvedCount / totalCount) * 100)
-  return (
-    <div className="progress-bar-container" title={`Progress: ${pct}%`}>
-      <div className="progress-bar-fill" style={{width: `${pct}%`}} />
-      <span className="progress-bar-label">{solvedCount} / {totalCount} solved</span>
-    </div>
-  )
-}
-
-function FancyChevron({ open, style = {}, size = 18 }) {
-  return (
-    <svg
-      style={{
-        transition: 'transform 0.2s',
-        transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
-        verticalAlign: 'middle',
-        ...style,
-      }}
-      width={size}
-      height={size}
-      viewBox="0 0 20 20"
-      fill="none"
-    >
-      <polyline
-        points="6 8 10 12 14 8"
-        stroke="#6366f1"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
+const SOLVED_STORAGE_KEY = "leetcode_solved_problems";
 
 export default function HomePage({ problems, userEmail }) {
-  // Premium demo toggle
+  // Premium toggle, progress state, etc. unchanged...
   const [isPremiumUser, setIsPremiumUser] = useState(false);
 
-  // Progress tied to user email
   const storageKey = `${SOLVED_STORAGE_KEY}_${userEmail}`;
-
-  // Solved state per problem
   const [solved, setSolved] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(storageKey)) || {};
@@ -93,17 +32,15 @@ export default function HomePage({ problems, userEmail }) {
     }
   });
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(solved))
-  }, [solved, storageKey])
-
+    localStorage.setItem(storageKey, JSON.stringify(solved));
+  }, [solved, storageKey]);
   const toggleSolved = (number) => {
     setSolved(prev => ({
       ...prev,
       [number]: !prev[number]
-    }))
-  }
+    }));
+  };
 
-  // Filters and fuzzy search logic
   const [filters, setFilters] = useState({
     number: '',
     title: '',
@@ -111,111 +48,45 @@ export default function HomePage({ problems, userEmail }) {
     frequency: '',
     companies: '',
     difficulty: '',
-  })
-  const [search, setSearch] = useState('')
+  });
+  const [search, setSearch] = useState('');
 
-  // Collapsible states
-  const [openTags, setOpenTags] = useState({})
-  const [openSubTags, setOpenSubTags] = useState({})
-  const [openDifficulties, setOpenDifficulties] = useState({})
-
-  // ---- Auto-expand root-tag for selectedTopic
-  const allTopics = [
-    ...new Set(problems.map(p =>
-      p.tag ? p.tag.split('/')[0].trim() : "Other"
-    ))
-  ].sort();
-
-  const [selectedTopic, setSelectedTopic] = useState(allTopics[0])
+  // Topics
+  const allTopics = getTopics(problems);
+  const [selectedTopic, setSelectedTopic] = useState(allTopics[0]);
+  const [openTags, setOpenTags] = useState({});
+  const [openSubTags, setOpenSubTags] = useState({});
+  const [openDifficulties, setOpenDifficulties] = useState({});
   useEffect(() => {
     setOpenTags(prev => ({
       ...prev,
       [selectedTopic]: true
     }));
   }, [selectedTopic]);
-  // ------------------------------------------
 
-  const fuse = new Fuse(problems, {
-    keys: [
-      'number',
-      'title',
-      'tag',
-      'frequency',
-      'companies',
-      'difficulty',
-    ],
+  const fuseOptions = {
+    keys: ['number', 'title', 'tag', 'frequency', 'companies', 'difficulty'],
     threshold: 0.3,
-  })
+  };
 
-  const uniqueCompanies = [
-    ...new Set(problems.flatMap((problem) => problem.companies || [])),
-  ]
-
-  // Filter by topic (root tag)
+  // Filter and search logic
   const problemsForTopic = problems.filter(p =>
     (p.tag ? p.tag.split('/')[0].trim() : "Other") === selectedTopic
   );
-
-  // Also apply search/filters
-  const filteredProblems = problemsForTopic.filter((problem) => {
-    return Object.keys(filters).every((key) => {
-      if (!filters[key]) return true
-      if (key === 'companies') {
-        return problem.companies?.includes(filters[key])
-      }
-      if (Array.isArray(problem[key])) {
-        return problem[key].some((item) =>
-          item.toLowerCase().includes(filters[key].toLowerCase())
-        )
-      }
-      return problem[key]
-        ? problem[key].toLowerCase().includes(filters[key].toLowerCase())
-        : true
-    })
-  })
-
-  const searchResults = search
-    ? new Fuse(filteredProblems, fuse.options).search(search).map((result) => result.item)
-    : filteredProblems
-
-  // NESTED GROUPING
-  const groupedProblems = {};
-  searchResults.forEach((problem) => {
-    let rootTag = 'Other', subTag = 'General';
-    if (problem.tag) {
-      const [root, ...rest] = problem.tag.split('/');
-      rootTag = root.trim();
-      subTag = rest.length > 0 ? rest.join('/').trim() : 'General';
-    }
-    const difficulty = problem.difficulty || 'Medium';
-
-    if (!groupedProblems[rootTag]) groupedProblems[rootTag] = {};
-    if (!groupedProblems[rootTag][subTag]) groupedProblems[rootTag][subTag] = {};
-    if (!groupedProblems[rootTag][subTag][difficulty]) groupedProblems[rootTag][subTag][difficulty] = [];
-    groupedProblems[rootTag][subTag][difficulty].push(problem);
+  const searchResults = searchAndFilterProblems({
+    problems: problemsForTopic,
+    filters,
+    search,
+    fuseOptions,
   });
 
-  const freqOrder = {
-    'Very High': 1,
-    'High': 2,
-    'Medium': 3,
-    'Low': 4,
-    'Other': 5,
-  };
-  Object.keys(groupedProblems).forEach((rootTag) => {
-    Object.keys(groupedProblems[rootTag]).forEach((subTag) => {
-      Object.keys(groupedProblems[rootTag][subTag]).forEach((difficulty) => {
-        groupedProblems[rootTag][subTag][difficulty].sort((a, b) => {
-          const fa = freqOrder[a.frequency] || 99
-          const fb = freqOrder[b.frequency] || 99
-          if (fa !== fb) return fa - fb
-          return (a.title || '').localeCompare(b.title || '')
-        });
-      });
-    });
-  });
+  // Group/sort
+  let groupedProblems = groupProblems(searchResults);
+  groupedProblems = sortGroupedProblems(groupedProblems);
 
-  // Toggle logic for rootTag: expand all subtags/difficulties if first open
+  const uniqueCompanies = getUniqueCompanies(problems);
+
+  // Collapsible logic unchanged
   function handleRootTagToggle(rootTag) {
     setOpenTags(prevOpenTags => {
       const currentlyOpen = !!prevOpenTags[rootTag];
@@ -244,34 +115,27 @@ export default function HomePage({ problems, userEmail }) {
       ...prev,
       [key]: !prev[key]
     }));
-  }
+  };
   const toggleDifficulty = (rootTag, subTag, difficulty) => {
     const key = `${rootTag}//${subTag}//${difficulty}`;
     setOpenDifficulties(prev => ({
       ...prev,
       [key]: !prev[key]
     }));
-  }
-  function handleFilterChange(field, value) {
-    setFilters((prev) => ({ ...prev, [field]: value }))
-  }
+  };
 
-  // Progress calculation
-  const totalSolved = Object.values(solved).filter(Boolean).length
+  // Progress calc
   const topicTotal = problemsForTopic.length;
   const topicSolved = problemsForTopic.filter(p => solved[p.number]).length;
 
   return (
     <div className="page-row">
-      {/* Sidebar */}
       <Sidebar
         topics={allTopics}
         selected={selectedTopic}
         onSelect={setSelectedTopic}
       />
-
       <div className="home-container">
-        {/* Premium toggle */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
           <button
             className={`toggle-premium-btn ${isPremiumUser ? "premium" : ""}`}
@@ -280,15 +144,12 @@ export default function HomePage({ problems, userEmail }) {
             {isPremiumUser ? "Switch to Free" : "Switch to Premium"}
           </button>
         </div>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.2em', marginBottom: 8 }}>
           <Logo style={{ maxWidth: 220, height: 56 }} />
         </div>
         <p style={{ marginTop: 0, color: '#64748b', fontSize: '1.18em' }}>
           Explore problems, learn solutions, and enhance your skills.
         </p>
-
-        {/* Example: Premium section at the top */}
         <PremiumFeature isPremiumUser={isPremiumUser}>
           <div className="premium-content" style={{ margin: "18px 0" }}>
             <h3>🔥 Premium Video Solution</h3>
@@ -303,218 +164,35 @@ export default function HomePage({ problems, userEmail }) {
             ></iframe>
           </div>
         </PremiumFeature>
-
-        {/* Topic Progress Bar */}
         <ProgressBar solvedCount={topicSolved} totalCount={topicTotal} />
-
-        {/* Filters */}
-        <div className="filters-container">
-          <input
-            type="text"
-            placeholder="Fuzzy Search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="search-input"
-          />
-          {Object.keys(filters).map((field) => (
-            <div key={field} className="filter-dropdown">
-              <label>{field}</label>
-              {field === 'companies' ? (
-                <select
-                  value={filters[field]}
-                  onChange={(e) => handleFilterChange(field, e.target.value)}
-                >
-                  <option value="">All</option>
-                  {uniqueCompanies.map((company) => (
-                    <option key={company} value={company}>
-                      {company}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <select
-                  value={filters[field]}
-                  onChange={(e) => handleFilterChange(field, e.target.value)}
-                >
-                  <option value="">All</option>
-                  {[...new Set(problems.map((p) => p[field]))]
-                    .filter((value) => value)
-                    .map((value) => (
-                      <option key={value} value={value}>
-                        {Array.isArray(value) ? value.join(', ') : value}
-                      </option>
-                    ))}
-                </select>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* ====== PROBLEM & SOLVED COUNT ====== */}
+        <FiltersBar
+          filters={filters}
+          setFilters={setFilters}
+          uniqueCompanies={uniqueCompanies}
+          search={search}
+          setSearch={setSearch}
+          problems={problems}
+        />
         <div style={{ margin: "16px 0", fontWeight: 500 }}>
           Showing <span style={{ color: "#2563eb" }}>{searchResults.length}</span> problem{searchResults.length !== 1 ? "s" : ""}.{' '}
           <span style={{ marginLeft: 16, color: "#16a34a" }}>
             <b>Solved:</b> {topicSolved}
           </span>
         </div>
-        {/* ====================================== */}
-
-        {/* --------- NESTED GROUPED DISPLAY ----------- */}
-        {Object.keys(groupedProblems)
-          .sort()
-          .map((rootTag) => (
-            <div key={rootTag} className="root-tag-section">
-              {/* Only show rootTag if matches selectedTopic */}
-              {rootTag === selectedTopic && (
-                <>
-                  <div
-                    className="collapsible-header root-tag-collapsible"
-                    onClick={() => handleRootTagToggle(rootTag)}
-                    style={{
-                      cursor: 'pointer',
-                      fontSize: '1.22em',
-                      fontWeight: 600,
-                      marginTop: 18,
-                      marginBottom: 4,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 5
-                    }}
-                  >
-                    <FancyChevron open={!!openTags[rootTag]} />
-                    {rootTag}
-                  </div>
-                  {openTags[rootTag] && (
-                    <div style={{ marginLeft: '1.2em' }}>
-                      {Object.keys(groupedProblems[rootTag])
-                        .sort()
-                        .map((subTag) => {
-                          const subKey = `${rootTag}//${subTag}`;
-                          return (
-                            <div key={subTag} className="subtag-section">
-                              <div
-                                className="collapsible-header subtag-collapsible"
-                                onClick={() => toggleSubTag(rootTag, subTag)}
-                                style={{
-                                  cursor: 'pointer',
-                                  fontWeight: 500,
-                                  marginTop: 8,
-                                  marginBottom: 3,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 5
-                                }}
-                              >
-                                <FancyChevron open={!!openSubTags[subKey]} size={15} />
-                                {subTag}
-                              </div>
-                              {openSubTags[subKey] && (
-                                <div style={{ marginLeft: '1.2em' }}>
-                                  {Object.keys(groupedProblems[rootTag][subTag])
-                                    .sort()
-                                    .map((difficulty) => {
-                                      const difficultyKey = `${rootTag}//${subTag}//${difficulty}`;
-                                      const problemsInSection = groupedProblems[rootTag][subTag][difficulty];
-                                      return (
-                                        <div key={difficulty} className="difficulty-section">
-                                          <div
-                                            className="collapsible-header difficulty-collapsible"
-                                            onClick={() => toggleDifficulty(rootTag, subTag, difficulty)}
-                                            style={{
-                                              fontWeight: 400,
-                                              margin: '10px 0 3px',
-                                              cursor: 'pointer',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: 5
-                                            }}
-                                          >
-                                            <FancyChevron open={!!openDifficulties[difficultyKey]} size={13} />
-                                            {difficulty}
-                                          </div>
-                                          {openDifficulties[difficultyKey] && (
-                                            <table className="problems-table">
-                                              <thead>
-                                                <tr>
-                                                  <th>Title</th>
-                                                  <th>Companies</th>
-                                                  <th>Solution Summary</th>
-                                                  <th>Premium Editorial</th>
-                                                  <th>Frequency</th>
-                                                  <th>URL</th>
-                                                  <th>Solved</th>
-                                                </tr>
-                                              </thead>
-                                              <tbody>
-                                                {problemsInSection.map((problem) => (
-                                                  <tr key={problem.number || problem.title}>
-                                                    <td>
-                                                      <Link
-                                                        to={`/problems/${problem.number || problem.title}`}
-                                                        className="problem-link"
-                                                      >
-                                                        {problem.title}
-                                                      </Link>
-                                                    </td>
-                                                    <td>
-                                                      {problem.companies && problem.companies.length > 0
-                                                        ? problem.companies.map((company, idx) => (
-                                                          <div key={idx} className="company-name">
-                                                            {company}
-                                                          </div>
-                                                        ))
-                                                        : 'N/A'}
-                                                    </td>
-                                                    <td className="solution-summary">
-                                                      {problem.solution_summary || 'N/A'}
-                                                    </td>
-                                                    {/* -------- Premium Editorial Demo -------- */}
-                                                    <td>
-                                                      <PremiumFeature isPremiumUser={isPremiumUser}>
-                                                        <span style={{ color: "#dc2626" }}>Unlocked!</span>
-                                                      </PremiumFeature>
-                                                    </td>
-                                                    {/* --------------------------------------- */}
-                                                    <td>{problem.frequency}</td>
-                                                    <td>
-                                                      <a
-                                                        href={problem.url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="leetcode-link"
-                                                      >
-                                                        LeetCode
-                                                      </a>
-                                                    </td>
-                                                    {/* ==== Solved Checkbox ==== */}
-                                                    <td>
-                                                      <input
-                                                        type="checkbox"
-                                                        checked={!!solved[problem.number]}
-                                                        onChange={() => toggleSolved(problem.number)}
-                                                        title="Mark as solved"
-                                                      />
-                                                    </td>
-                                                  </tr>
-                                                ))}
-                                              </tbody>
-                                            </table>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          ))}
+        <ProblemsGroup
+          groupedProblems={groupedProblems}
+          openTags={openTags}
+          openSubTags={openSubTags}
+          openDifficulties={openDifficulties}
+          handleRootTagToggle={handleRootTagToggle}
+          toggleSubTag={toggleSubTag}
+          toggleDifficulty={toggleDifficulty}
+          selectedTopic={selectedTopic}
+          isPremiumUser={isPremiumUser}
+          solved={solved}
+          toggleSolved={toggleSolved}
+        />
       </div>
     </div>
-  )
+  );
 }
