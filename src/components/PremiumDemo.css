@@ -1,0 +1,53 @@
+.premium-demo-container {
+  max-width: 480px;
+  margin: 32px auto;
+  background: #fff;
+  padding: 28px 18px 24px 18px;
+  border-radius: 13px;
+  box-shadow: 0 6px 36px #e3e6f8;
+  font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+}
+
+.section {
+  margin: 22px 0 18px 0;
+  padding: 15px 13px 11px 13px;
+  border-radius: 9px;
+  background: #f4f7fa;
+}
+
+.premium-content {
+  background: linear-gradient(93deg, #ede9fe 50%, #dbeafe 120%);
+  border: 1.3px solid #a5b4fc;
+}
+
+.upgrade-banner {
+  background: #fff8e1;
+  color: #9a3412;
+  padding: 15px 13px;
+  border-radius: 9px;
+  border: 1.1px solid #fed7aa;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 14px 0 10px 0;
+  flex-direction: column;
+}
+
+.toggle-premium-btn {
+  margin-left: 20px;
+  background: #e0e7ff;
+  border: 1.4px solid #a5b4fc;
+  color: #374151;
+  border-radius: 5px;
+  padding: 5px 13px;
+  font-size: 1em;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.16s;
+}
+.toggle-premium-btn.premium {
+  background: #bbf7d0;
+  color: #15803d;
+  border: 1.4px solid #34d399;
+}

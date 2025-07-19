@@ -4,16 +4,36 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import './ProblemPage.css'
 
 const SOLVED_STORAGE_KEY = "leetcode_solved_problems"
+const premiumProblems = [1, 4, 10] // adjust as needed
 
-export default function ProblemPage({ problems }) {
+// Premium wrapper
+function PremiumFeature({ isPremiumUser, children }) {
+  if (isPremiumUser) return children
+  return (
+    <div className="upgrade-banner" style={{margin:'16px 0'}}>
+      <span role="img" aria-label="lock">🔒</span>
+      This section is for premium users only.
+      <button
+        style={{ marginLeft: 16 }}
+        onClick={() => alert("Trigger your upgrade logic here!")}
+      >
+        Upgrade to Premium
+      </button>
+    </div>
+  )
+}
+
+export default function ProblemPage({ problems, userEmail }) {
   const { number } = useParams()
-  const problem = problems.find(p => p.number === number)
+  const problem = problems.find(p => String(p.number) === String(number))
   const [isJavaSolutionVisible, setJavaSolutionVisible] = useState(false)
+  const [isPremiumUser, setIsPremiumUser] = useState(false)
 
-  // Solved state (localStorage-backed)
+  // Progress tied to email
+  const storageKey = `${SOLVED_STORAGE_KEY}_${userEmail}`;
   const [solved, setSolved] = useState(() => {
     try {
-      const obj = JSON.parse(localStorage.getItem(SOLVED_STORAGE_KEY)) || {};
+      const obj = JSON.parse(localStorage.getItem(storageKey)) || {};
       return !!obj[problem?.number]
     } catch {
       return false
@@ -21,24 +41,23 @@ export default function ProblemPage({ problems }) {
   })
 
   useEffect(() => {
-    // Keep state in sync with localStorage changes from other tabs
     const onStorage = () => {
       try {
-        const obj = JSON.parse(localStorage.getItem(SOLVED_STORAGE_KEY)) || {};
+        const obj = JSON.parse(localStorage.getItem(storageKey)) || {};
         setSolved(!!obj[problem?.number])
       } catch {}
     }
     window.addEventListener("storage", onStorage)
     return () => window.removeEventListener("storage", onStorage)
-  }, [problem?.number])
+  }, [problem?.number, storageKey])
 
   const handleSolvedToggle = () => {
     let solvedObj = {}
     try {
-      solvedObj = JSON.parse(localStorage.getItem(SOLVED_STORAGE_KEY)) || {}
+      solvedObj = JSON.parse(localStorage.getItem(storageKey)) || {}
     } catch {}
     solvedObj[problem.number] = !solved
-    localStorage.setItem(SOLVED_STORAGE_KEY, JSON.stringify(solvedObj))
+    localStorage.setItem(storageKey, JSON.stringify(solvedObj))
     setSolved(!solved)
   }
 
@@ -49,8 +68,19 @@ export default function ProblemPage({ problems }) {
     </div>
   )
 
+  const isPremiumProblem = premiumProblems.includes(Number(problem.number))
+
   return (
     <div className="problem-container">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+        <button
+          className={`toggle-premium-btn ${isPremiumUser ? "premium" : ""}`}
+          onClick={() => setIsPremiumUser(v => !v)}
+        >
+          {isPremiumUser ? "Switch to Free" : "Switch to Premium"}
+        </button>
+      </div>
+
       <Link to="/" className="back-link">← Back</Link>
       <div className="problem-title">
         #{problem.number} – {problem.title}
@@ -101,24 +131,46 @@ export default function ProblemPage({ problems }) {
         </div>
       )}
 
-      {/* Approach Section */}
+      {/* Approach Section - Premium-gated for some problems */}
       {problem.approach && (
-        <div className="problem-section">
-          <h3>Approach</h3>
-          <p>{problem.approach}</p>
-        </div>
+        isPremiumProblem ? (
+          <PremiumFeature isPremiumUser={isPremiumUser}>
+            <div className="problem-section">
+              <h3>Approach</h3>
+              <p>{problem.approach}</p>
+            </div>
+          </PremiumFeature>
+        ) : (
+          <div className="problem-section">
+            <h3>Approach</h3>
+            <p>{problem.approach}</p>
+          </div>
+        )
       )}
 
-      {/* Main Data Structures Section */}
+      {/* Main Data Structures Section - Premium-gated for some problems */}
       {problem.mainDataStructures && problem.mainDataStructures.length > 0 && (
-        <div className="problem-section">
-          <h3>Main Data Structures</h3>
-          <ul>
-            {problem.mainDataStructures.map((ds, index) => (
-              <li key={index}>{ds}</li>
-            ))}
-          </ul>
-        </div>
+        isPremiumProblem ? (
+          <PremiumFeature isPremiumUser={isPremiumUser}>
+            <div className="problem-section">
+              <h3>Main Data Structures</h3>
+              <ul>
+                {problem.mainDataStructures.map((ds, index) => (
+                  <li key={index}>{ds}</li>
+                ))}
+              </ul>
+            </div>
+          </PremiumFeature>
+        ) : (
+          <div className="problem-section">
+            <h3>Main Data Structures</h3>
+            <ul>
+              {problem.mainDataStructures.map((ds, index) => (
+                <li key={index}>{ds}</li>
+              ))}
+            </ul>
+          </div>
+        )
       )}
 
       {/* High-Level Pseudocode Section */}
